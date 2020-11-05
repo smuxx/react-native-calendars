@@ -3,7 +3,7 @@ import {FlatList, ActivityIndicator, View} from 'react-native';
 import Reservation from './reservation';
 import PropTypes from 'prop-types';
 import XDate from 'xdate';
-
+import {parseDate} from '../../interface';
 import dateutils from '../../dateutils';
 import styleConstructor from './style';
 
@@ -185,6 +185,41 @@ class ReservationList extends Component {
     return {reservations, scrollPosition};
   }
 
+  _onRefresh = () => {
+		let h = 0;
+		let scrollPosition = 0;
+		const selectedDay = this.props.selectedDay.clone();
+		const iterator = parseDate(this.props.selectedDay.clone().getTime()-3600*24*30*1000);
+		let reservations = [];
+		for (let i = 0; i < 30; i++) {
+		const res = this.getReservationsForDay(iterator, this.props);
+		if (res) {
+			reservations = reservations.concat(res);
+		}
+		iterator.addDays(1);
+		}
+		scrollPosition = reservations.length;
+		for (let i = 30; i < 90; i++) {
+		const res = this.getReservationsForDay(iterator, this.props);
+		if (res) {
+			reservations = reservations.concat(res);
+		}
+		iterator.addDays(1);
+		}
+		this.setState({
+		reservations
+		}, () => {
+		setTimeout(() => {
+			let h = 0;
+			for (let i = 0; i < scrollPosition; i++) {
+			h += this.heights[i] || 0;
+			}
+			this.list.scrollToOffset({offset: h, animated: false});
+			this.props.onDayChange(selectedDay, false);
+		}, 100);
+		});
+	}
+
   render() {
     const {reservations} = this.props;
     if (!reservations || !reservations[this.props.selectedDay.toString('yyyy-MM-dd')]) {
@@ -209,7 +244,7 @@ class ReservationList extends Component {
         keyExtractor={(item, index) => String(index)}
         refreshControl={this.props.refreshControl}
         refreshing={this.props.refreshing || false}
-        onRefresh={this.props.onRefresh}
+        onRefresh={this._onRefresh}
         onScrollBeginDrag={this.props.onScrollBeginDrag}
         onScrollEndDrag={this.props.onScrollEndDrag}
         onMomentumScrollBegin={this.props.onMomentumScrollBegin}
